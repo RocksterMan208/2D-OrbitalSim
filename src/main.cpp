@@ -9,7 +9,7 @@ constexpr int windowWidth = 800;
 constexpr int windowHeight = 600;
 const std::string windowTitle = "Epic Window";
 
-constexpr int pixelScale = 100;
+constexpr float pixelScale = 1281.33f;
 const double gravConst = 6.674e-11;
 
 int main()
@@ -21,11 +21,13 @@ int main()
     test.pos = {400,300};
     test.planetRad = 80;
     test.planetColor = RED;
+    test.planetWeight = 5.9722e24;
 
     Planet test2;
-    test2.pos = {300,300};
+    test2.pos = {100,300};
     test2.planetRad = 40;
     test2.planetColor = RED;
+    test2.planetWeight = 7.35e22;
 
     while (!WindowShouldClose())
     {

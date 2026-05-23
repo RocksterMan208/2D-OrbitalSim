@@ -12,14 +12,20 @@ struct Planet
         float planetRad;
         double planetWeight;
         Color planetColor;
+        float orbitRad;
+        Vector2 orbitCent;
 
-        void update(double gravConstant, Planet otherPlanet)
+        float angle = 0;
+
+        void update(double gravConstant)
         {
-            Vector2 differencePos =  Vector2Subtract(pos, otherPlanet.pos);
-            //std::cout << differencePos.x << " | " << differencePos.y << std::endl;
-            float gravForce = gravConstant * (planetWeight * otherPlanet.planetWeight) / (differencePos.x + differencePos.y);
+            
+            pos.x = orbitCent.x + orbitRad * cos(angle);
+            pos.y = orbitCent.y + orbitRad * sin(angle);
 
-            std::cout << gravForce << std::endl;
+            std::cout << pos.x << " | " << pos.y << std::endl;
+
+            angle += .1 * DEG2RAD;
         }
 
         void render()

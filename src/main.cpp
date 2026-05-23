@@ -5,11 +5,10 @@
 #include "raymath.h"
 #include "planets.hpp"
 
-constexpr int windowWidth = 800;
-constexpr int windowHeight = 600;
+constexpr int windowWidth = 1920;
+constexpr int windowHeight = 1080;
 const std::string windowTitle = "Epic Window";
 
-constexpr float pixelScale = 1281.33f;
 const double gravConst = 6.674e-11;
 
 int main()
@@ -18,20 +17,22 @@ int main()
     SetTargetFPS(60);
 
     Planet test;
-    test.pos = {400,300};
-    test.planetRad = 80;
+    test.planetRad = 100;
     test.planetColor = RED;
-    test.planetWeight = 5.9722e24;
+    test.pos.x = GetScreenWidth()/2;
+    test.pos.y = GetScreenHeight()/2;
 
     Planet test2;
-    test2.pos = {100,300};
-    test2.planetRad = 40;
-    test2.planetColor = RED;
-    test2.planetWeight = 7.35e22;
+    test2.planetRad = 50;
+    test2.planetColor = PURPLE;
+    test2.pos.x = test.pos.x - 200;
+    test2.pos.y = test.pos.y;
+    test2.orbitCent = test.pos;
+    test2.orbitRad = 400;
 
     while (!WindowShouldClose())
     {
-        test.update(gravConst, test2);
+        test2.update(gravConst);
         
         BeginDrawing();
         ClearBackground(RAYWHITE);

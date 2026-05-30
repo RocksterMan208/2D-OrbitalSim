@@ -19,6 +19,10 @@ Otherwise, if you just want to compile the code:
 ```
 make
 ```
+If you change any variables within the header files (.hpp files) you will have to run the following command if build files are present:
+```
+make reset
+```
 # Current progress of the project:
 - The programme will create a white window which displays a central planet (which may represent the sun or whatever you want because it is a placeholder) and an orbiting planet/moon with a path.
 - The programme does involve movement and a time warp function (beware with the time warp function as it is unstable at high speeds.)

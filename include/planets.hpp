@@ -4,32 +4,36 @@
 #include "raymath.h"
 
 #include <iostream>
+#include <vector>
 
 struct Planet
 {
     public:
         Vector2 pos;
-        float planetRad;
-        double planetWeight;
-        Color planetColor;
-        float orbitRad;
-        Vector2 orbitCent;
+        float mass;
+        float radius;
+        Color color;
+        Vector2 vel;
 
-        float angle = 0;
+        std::vector<Vector2> path;
 
-        void update(double gravConstant)
+        void update(float gravConstant, Planet center)
         {
+            float dt = GetFrameTime();
             
-            pos.x = orbitCent.x + orbitRad * cos(angle);
-            pos.y = orbitCent.y + orbitRad * sin(angle);
+            Vector2 dir = Vector2Subtract(center.pos, pos);
+            float distance = Vector2Length(dir);
+            Vector2 normDir = Vector2Normalize(dir);
 
-            std::cout << pos.x << " | " << pos.y << std::endl;
+            float GAccel = gravConstant * center.mass / (distance*distance);
+            Vector2 acceleration = Vector2Scale(normDir, GAccel);
 
-            angle += .1 * DEG2RAD;
+            vel = Vector2Add(vel, Vector2Scale(acceleration, dt));
+            pos = Vector2Add(pos, Vector2Scale(vel, dt));
         }
 
         void render()
         {
-            DrawCircle(pos.x, pos.y, planetRad, planetColor);
+            DrawCircle(pos.x, pos.y, radius, color);
         }
 };

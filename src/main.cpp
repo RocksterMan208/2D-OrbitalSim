@@ -9,36 +9,39 @@ constexpr int windowWidth = 1920;
 constexpr int windowHeight = 1080;
 const std::string windowTitle = "Epic Window";
 
-const double gravConst = 6.674e-11;
+const float gravConst = 100.0f;
 
 int main()
 {
     InitWindow(windowWidth, windowHeight, windowTitle.c_str());
     SetTargetFPS(60);
 
-    Planet test;
-    test.planetRad = 100;
-    test.planetColor = RED;
-    test.pos.x = GetScreenWidth()/2;
-    test.pos.y = GetScreenHeight()/2;
+    Planet center;
+    center.mass = 10000.0f;
+    center.radius = 100.0f;
+    center.pos = {960, 540};
+    center.color = ORANGE;
 
-    Planet test2;
-    test2.planetRad = 50;
-    test2.planetColor = PURPLE;
-    test2.pos.x = test.pos.x - 200;
-    test2.pos.y = test.pos.y;
-    test2.orbitCent = test.pos;
-    test2.orbitRad = 400;
+    Planet satellite;
+    satellite.mass = 3333.3f;
+    satellite.radius = 20.0f;
+    satellite.pos = {1140, 540};
+    satellite.color = BLUE;
+
+    //float speedCirc = sqrt(gravConst * center.mass / 300);
+    float speedCirc = 90.0f;
+
+    satellite.vel = {0, -speedCirc};
 
     while (!WindowShouldClose())
     {
-        test2.update(gravConst);
-        
+        satellite.update(gravConst, center);
+
         BeginDrawing();
         ClearBackground(RAYWHITE);
 
-        test.render();
-        test2.render();
+        center.render();
+        satellite.render();
 
         EndDrawing();
     }

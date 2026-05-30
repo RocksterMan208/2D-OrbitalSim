@@ -17,9 +17,8 @@ struct Planet
 
         std::vector<Vector2> path;
 
-        void update(float gravConstant, Planet center)
+        void update(float gravConstant, Planet center, float deltaTime)
         {
-            float dt = GetFrameTime();
             
             Vector2 dir = Vector2Subtract(center.pos, pos);
             float distance = Vector2Length(dir);
@@ -28,12 +27,29 @@ struct Planet
             float GAccel = gravConstant * center.mass / (distance*distance);
             Vector2 acceleration = Vector2Scale(normDir, GAccel);
 
-            vel = Vector2Add(vel, Vector2Scale(acceleration, dt));
-            pos = Vector2Add(pos, Vector2Scale(vel, dt));
+            vel = Vector2Add(vel, Vector2Scale(acceleration, deltaTime));
+            pos = Vector2Add(pos, Vector2Scale(vel, deltaTime));
         }
 
         void render()
         {
             DrawCircle(pos.x, pos.y, radius, color);
+        }
+
+        void drawPredictedOrbit(float gravConstant, Planet center)
+        {
+            const int renderSteps = 10000; // Resolution of the line
+
+            Planet future = *this; // Creating a copy of the satellite to orbit quickly then draw the path.
+
+            Vector2 lastPos = future.pos; // For drawing the line
+
+            for (int i = 0; i < renderSteps; i++)
+            {
+                future.update(gravConstant, center, 1.0f/60.0f);
+                DrawLineV(lastPos, future.pos, GRAY);
+
+                lastPos = future.pos;
+            }
         }
 };

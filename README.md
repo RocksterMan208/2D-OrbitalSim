@@ -20,4 +20,6 @@ Otherwise, if you just want to compile the code:
 make
 ```
 # Current progress of the project:
-- The program only creates a window when run
+- The programme will create a white window which displays a central planet (which may represent the sun or whatever you want because it is a placeholder) and an orbiting planet/moon with a path.
+- The programme does involve movement and a time warp function (beware with the time warp function as it is unstable at high speeds.)
+- I aim to add some features to the programme which mean the user can interact properly with each object without changing any code.

@@ -11,6 +11,8 @@ const std::string windowTitle = "Epic Window";
 
 const float gravConst = 10.0f;
 
+int timeWarp = 1;
+
 int main()
 {
     InitWindow(windowWidth, windowHeight, windowTitle.c_str());
@@ -34,14 +36,13 @@ int main()
     satellite.pos = {1140, 540};
     satellite.color = BLUE;
 
-    //float speedCirc = sqrt(gravConst * center.mass / 300);
     float speedCirc = 310.0f;
 
     satellite.vel = {0, -speedCirc};
 
     while (!WindowShouldClose())
     {
-        satellite.update(gravConst, center, GetFrameTime());
+        satellite.update(gravConst, center, timeWarp*GetFrameTime());
 
         if (IsMouseButtonDown(MOUSE_BUTTON_LEFT))
         {
@@ -49,6 +50,14 @@ int main()
             camera.target = Vector2Add(camera.target, Vector2Scale(mouseChange, -1.0f / camera.zoom)); // Uses the mouse delta to move the camera in the direciton of movement
         }
         camera.zoom = expf(logf(camera.zoom) + ((float)GetMouseWheelMove()*0.1f)); // Uses log for consistent mouse wheel zooming
+
+        if (IsKeyDown(KEY_UP)) satellite.vel.y -= 1.0f;
+        if (IsKeyDown(KEY_DOWN)) satellite.vel.y += 1.0f;
+        if (IsKeyDown(KEY_RIGHT)) satellite.vel.x -= 1.0f;
+        if (IsKeyDown(KEY_LEFT)) satellite.vel.x += 1.0f;
+
+        if (IsKeyPressed(KEY_PERIOD)) timeWarp += 1;
+        if (IsKeyPressed(KEY_COMMA)) timeWarp -= 1;
 
         BeginDrawing();
         ClearBackground(RAYWHITE);
@@ -63,6 +72,10 @@ int main()
             EndMode2D();
 
             DrawFPS(10,10);
+            
+            std::string text = std::to_string(timeWarp);
+
+            DrawText(text.c_str(), 10, 40, 16, BLACK);
 
         EndDrawing();
     }

@@ -15,8 +15,6 @@ struct Planet
         Color color;
         Vector2 vel;
 
-        std::vector<Vector2> path;
-
         void update(float gravConstant, Planet center, float deltaTime)
         {
             
@@ -36,15 +34,16 @@ struct Planet
             DrawCircle(pos.x, pos.y, radius, color);
         }
 
-        void drawPredictedOrbit(float gravConstant, Planet center)
+        void drawPredictedOrbit(float gravConstant, Planet center) // PLEASE OPTIMIZE!!!!
         {
-            const int renderSteps = 10000; // Resolution of the line
+            const int maximumSteps = 6000; // Resolution of the line
 
             Planet future = *this; // Creating a copy of the satellite to orbit quickly then draw the path.
 
             Vector2 lastPos = future.pos; // For drawing the line
+            Vector2 startPos = future.pos;
 
-            for (int i = 0; i < renderSteps; i++)
+            for (int i = 0; i < maximumSteps; i++)
             {
                 future.update(gravConstant, center, 1.0f/60.0f);
                 DrawLineV(lastPos, future.pos, GRAY);

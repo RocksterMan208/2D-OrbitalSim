@@ -25,25 +25,34 @@ int main()
     camera.zoom = 1.0f;
 
     Planet center;
-    center.mass = 1000000.0f;
+    center.mass = 100000.0f;
     center.radius = 100.0f;
     center.pos = {960, 540};
     center.color = ORANGE;
 
     Planet satellite;
-    satellite.mass = 3333.3f;
+    satellite.mass = 1000.0f;
     satellite.radius = 20.0f;
-    satellite.pos = {1140, 540};
+    satellite.pos = {1540, 540};
     satellite.color = BLUE;
 
-    float speedCirc = 310.0f;
+    satellite.vel = {0.0f, 40.0f};
 
-    satellite.vel = {0, -speedCirc};
+    Planet moon;
+    moon.mass = 500.0f;
+    moon.radius = 10.0f;
+    moon.pos = {1600, 540};
+    moon.color = DARKGRAY;
+
+    float moonSpeed = 15;
+
+    moon.vel = Vector2Add(satellite.vel, (Vector2){0.0f, -moonSpeed});
+
 
     while (!WindowShouldClose())
     {
-        satellite.update(gravConst, center, timeWarp*GetFrameTime());
-
+        float deltaTime = timeWarp * GetFrameTime();
+        
         if (IsMouseButtonDown(MOUSE_BUTTON_LEFT))
         {
             Vector2 mouseChange = GetMouseDelta(); // Getting mouse delta for movement
@@ -53,21 +62,31 @@ int main()
 
         if (IsKeyDown(KEY_UP)) satellite.vel.y -= 1.0f;
         if (IsKeyDown(KEY_DOWN)) satellite.vel.y += 1.0f;
-        if (IsKeyDown(KEY_RIGHT)) satellite.vel.x -= 1.0f;
-        if (IsKeyDown(KEY_LEFT)) satellite.vel.x += 1.0f;
+        if (IsKeyDown(KEY_LEFT)) satellite.vel.x -= 1.0f;
+        if (IsKeyDown(KEY_RIGHT)) satellite.vel.x += 1.0f;
 
-        if (IsKeyPressed(KEY_PERIOD)) timeWarp += 1;
-        if (IsKeyPressed(KEY_COMMA)) timeWarp -= 1;
+        if (IsKeyPressed(KEY_PERIOD) && timeWarp < 4) timeWarp += 1;
+        if (IsKeyPressed(KEY_COMMA) && timeWarp > 0) timeWarp -= 1;
+
+        Vector2 satelliteAccel = satellite.getAcceleration(gravConst, center);
+
+        Vector2 moonAccelSatellite = moon.getAcceleration(gravConst, satellite);
+        Vector2 moonAccelCenter = moon.getAcceleration(gravConst, center);
+
+        satellite.updateAndAcceleration(satelliteAccel, deltaTime);
+        moon.updateAndAcceleration(Vector2Add(moonAccelCenter, moonAccelSatellite), deltaTime);
+
+        std::cout << Vector2Distance(satellite.pos, moon.pos) << std::endl;
 
         BeginDrawing();
-        ClearBackground(RAYWHITE);
+        ClearBackground(BLACK);
             BeginMode2D(camera);
 
             satellite.drawPredictedOrbit(gravConst, center);
 
             center.render();
             satellite.render();
-
+            moon.render();
 
             EndMode2D();
 

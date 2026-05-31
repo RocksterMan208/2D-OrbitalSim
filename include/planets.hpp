@@ -15,26 +15,12 @@ struct Planet
         Color color;
         Vector2 vel;
 
-        void update(float gravConstant, Planet center, float deltaTime)
-        {
-            
-            Vector2 dir = Vector2Subtract(center.pos, pos);
-            float distance = Vector2Length(dir);
-            Vector2 normDir = Vector2Normalize(dir);
-
-            float GAccel = gravConstant * center.mass / (distance*distance);
-            Vector2 acceleration = Vector2Scale(normDir, GAccel);
-
-            vel = Vector2Add(vel, Vector2Scale(acceleration, deltaTime));
-            pos = Vector2Add(pos, Vector2Scale(vel, deltaTime));
-        }
-
         void render()
         {
             DrawCircle(pos.x, pos.y, radius, color);
         }
 
-        void drawPredictedOrbit(float gravConstant, Planet center) // PLEASE OPTIMIZE!!!!
+        void drawPredictedOrbit(float gravConstant, Planet center) // This currently does NOT work for a moon
         {
             const int maximumSteps = 6000; // Resolution of the line
 
@@ -45,10 +31,27 @@ struct Planet
 
             for (int i = 0; i < maximumSteps; i++)
             {
-                future.update(gravConstant, center, 1.0f/60.0f);
+                future.updateAndAcceleration(future.getAcceleration(gravConstant, center), 1.0f/60.0f);
                 DrawLineV(lastPos, future.pos, GRAY);
 
                 lastPos = future.pos;
             }
+        }
+
+        Vector2 getAcceleration(float gravConstant, Planet center) // Used for other calculations, typically for satellites of satellites (moons of planets).
+        {
+            Vector2 dir = Vector2Subtract(center.pos, pos);
+            float distance = Vector2Length(dir);
+            Vector2 normDir = Vector2Normalize(dir);
+
+            float GAccel = gravConstant * center.mass / (distance*distance);
+
+            return Vector2Scale(normDir, GAccel);
+        }
+
+        void updateAndAcceleration(Vector2 acceleration, float dt) // Use the acceleration gained from the getAcceleration function for acceleration
+        {
+            vel = Vector2Add(vel, Vector2Scale(acceleration, dt));
+            pos = Vector2Add(pos, Vector2Scale(vel, dt));
         }
 };

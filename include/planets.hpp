@@ -20,18 +20,17 @@ struct Planet
             DrawCircle(pos.x, pos.y, radius, color);
         }
 
-        void drawPredictedOrbit(float gravConstant, Planet center) // This currently does NOT work for a moon
+        void drawPredictedOrbit(float gravConstant, Planet center, float dt) // This currently does NOT work for a moon
         {
-            const int maximumSteps = 6000; // Resolution of the line
+            const int maximumSteps = 10000; // Resolution of the line
 
             Planet future = *this; // Creating a copy of the satellite to orbit quickly then draw the path.
 
             Vector2 lastPos = future.pos; // For drawing the line
-            Vector2 startPos = future.pos;
 
             for (int i = 0; i < maximumSteps; i++)
             {
-                future.updateAndAcceleration(future.getAcceleration(gravConstant, center), 1.0f/60.0f);
+                future.updateAndAcceleration(future.getAcceleration(gravConstant, center), dt);
                 DrawLineV(lastPos, future.pos, GRAY);
 
                 lastPos = future.pos;
@@ -54,4 +53,22 @@ struct Planet
             vel = Vector2Add(vel, Vector2Scale(acceleration, dt));
             pos = Vector2Add(pos, Vector2Scale(vel, dt));
         }
+};
+
+class PhysicsSystem
+{
+    private:
+    std::vector<Planet*> planetList;
+    public:
+
+    void AddPhysics(Planet* target) {planetList.push_back(target);} // Adds physics calculations to the designated planet
+
+    void ProcessPhysics(float gravConst, float dt, Planet center) // This is to be placed inside of the frame loop to calculate physics.
+    {
+        for (Planet* object : planetList )
+        {
+            Vector2 acc = object->getAcceleration(gravConst, center);
+            object->updateAndAcceleration(acc, dt);
+        }
+    }
 };

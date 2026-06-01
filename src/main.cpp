@@ -48,6 +48,10 @@ int main()
 
     moon.vel = Vector2Add(satellite.vel, (Vector2){0.0f, -moonSpeed});
 
+    PhysicsSystem system;
+
+    system.AddPhysics(&moon);
+    system.AddPhysics(&satellite);
 
     while (!WindowShouldClose())
     {
@@ -68,21 +72,13 @@ int main()
         if (IsKeyPressed(KEY_PERIOD) && timeWarp < 4) timeWarp += 1;
         if (IsKeyPressed(KEY_COMMA) && timeWarp > 0) timeWarp -= 1;
 
-        Vector2 satelliteAccel = satellite.getAcceleration(gravConst, center);
-
-        Vector2 moonAccelSatellite = moon.getAcceleration(gravConst, satellite);
-        Vector2 moonAccelCenter = moon.getAcceleration(gravConst, center);
-
-        satellite.updateAndAcceleration(satelliteAccel, deltaTime);
-        moon.updateAndAcceleration(Vector2Add(moonAccelCenter, moonAccelSatellite), deltaTime);
-
-        std::cout << Vector2Distance(satellite.pos, moon.pos) << std::endl;
+        system.ProcessPhysics(gravConst, deltaTime, center);
 
         BeginDrawing();
         ClearBackground(BLACK);
             BeginMode2D(camera);
 
-            satellite.drawPredictedOrbit(gravConst, center);
+            satellite.drawPredictedOrbit(gravConst, center, deltaTime);
 
             center.render();
             satellite.render();
@@ -94,7 +90,7 @@ int main()
             
             std::string text = std::to_string(timeWarp);
 
-            DrawText(text.c_str(), 10, 40, 16, BLACK);
+            DrawText(text.c_str(), 10, 40, 32, WHITE);
 
         EndDrawing();
     }

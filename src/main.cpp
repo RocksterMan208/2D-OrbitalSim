@@ -5,19 +5,14 @@
 #include "raymath.h"
 #include "planets.hpp"
 
-constexpr int windowWidth = 1920;
-constexpr int windowHeight = 1080;
-const std::string windowTitle = "Epic Window";
-
-const float gravConst = 10.0f;
-const float scale = 0.001;
+#include "settings.hpp"
 
 int timeWarp = 1;
 
 int main()
 {
     InitWindow(windowWidth, windowHeight, windowTitle.c_str());
-    SetTargetFPS(60);
+    SetTargetFPS(targFPS);
 
     Camera2D camera = {0};
     camera.offset = {windowWidth/2, windowHeight/2};
@@ -26,23 +21,32 @@ int main()
     camera.zoom = 1.0f;
 
     Planet Star;
-    Star.mass = 90000000;
-    Star.radius = 100;
+    Star.mass = 900000.0f;
+    Star.radius = 100.0f;
     Star.pos = {960, 540};
     Star.color = ORANGE;
 
-    Planet Planet;
-    Planet.mass = 1000;
-    Planet.radius = 40;
-    Planet.pos = {5000, 540};
-    Planet.color = BLUE;
+    Planet planet;
+    planet.mass = 1000.0f;
+    planet.radius = 30.0f;
+    planet.pos = {5000, 540};
+    planet.color = BLUE;
 
+    Planet moon;
+    moon.mass = 333.3f;
+    moon.radius = 10.0f;
+    moon.pos = {5100, 540};
+    moon.color = DARKGRAY;
+
+    AddPhysics(&moon);
     AddPhysics(&Star);
-    AddPhysics(&Planet);
+    AddPhysics(&planet);
 
-    float planetSpeed = circOrbit(gravConst, Star, Planet);
+    float planetSpeed = circOrbit(gravConst, Star, planet);
+    float moonSpeed = circOrbit(gravConst, planet, moon);
 
-    Planet.vel = {0, planetSpeed};
+    planet.vel = {0, planetSpeed};
+    moon.vel = {0, moonSpeed+planetSpeed};
 
     while (!WindowShouldClose())
     {
@@ -61,6 +65,8 @@ int main()
 
         ProcessPhysics(gravConst, deltaTime);
 
+        camera.target = moon.pos;
+
         BeginDrawing();
         ClearBackground(BLACK);
             BeginMode2D(camera);
@@ -68,7 +74,8 @@ int main()
             showOrbits(gravConst, deltaTime);
 
             Star.render();
-            Planet.render();
+            planet.render();
+            moon.render();
 
             EndMode2D();
             

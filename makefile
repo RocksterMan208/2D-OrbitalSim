@@ -1,36 +1,47 @@
-CXX := g++
+CXX := em++
+
 CXXFLAGS := -std=c++20 -Wall -Wextra -Wpedantic
+CXXFLAGS += -DPLATFORM_WEB=1 -DGRAPHICS_API_OPENGL_ES2
 
 SRC_DIR := src
 INCLUDE_DIR := include
-BUILD_DIR := build
-TARGET := play
+BUILD_DIR := build-web
+
+TARGET := player/play.html
+
+RAYLIB_DIR := /home/aheal/libs/raylib
+RAYLIB_SRC := $(RAYLIB_DIR)/src
+RAYLIB_LIB := $(RAYLIB_SRC)/libraylib.web.a
 
 SOURCES := $(shell find $(SRC_DIR) -name "*.cpp")
 OBJECTS := $(patsubst $(SRC_DIR)/%.cpp,$(BUILD_DIR)/%.o,$(SOURCES))
 
-# raylib via pkg-config (correct usage)
-raylib_CFLAGS := $(shell pkg-config --cflags raylib)
-raylib_LIBS := $(shell pkg-config --libs raylib)
+INCLUDES := -I$(INCLUDE_DIR) -I$(RAYLIB_SRC)
 
-INCLUDES := -I$(INCLUDE_DIR) $(raylib_CFLAGS)
+LDFLAGS := \
+	-s USE_GLFW=3 \
+	-s ASYNCIFY \
+	-s ALLOW_MEMORY_GROWTH=1 \
+	-s TOTAL_MEMORY=67108864 \
+	--shell-file shell.html
 
 all: $(TARGET)
 
 $(TARGET): $(OBJECTS)
-	@mkdir -p $(@D)
-	$(CXX) $(OBJECTS) -o $@ $(raylib_LIBS)
+	$(CXX) $(OBJECTS) -o $@ $(LDFLAGS) $(RAYLIB_LIB)
 
 $(BUILD_DIR)/%.o: $(SRC_DIR)/%.cpp
 	@mkdir -p $(dir $@)
 	$(CXX) $(CXXFLAGS) $(INCLUDES) -c $< -o $@
 
 clean:
-	rm -rf $(BUILD_DIR) $(TARGET)
+	rm -rf $(BUILD_DIR) play.html play.js play.wasm play.data
 
 run: $(TARGET)
-	./$(TARGET)
+	emrun $(TARGET)
 
-reset: clean all run
+reset: clean all
 
-.PHONY: all clean run reset
+reset-run: clean all run
+
+.PHONY: all clean run reset reset-run

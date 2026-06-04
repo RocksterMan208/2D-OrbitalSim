@@ -95,7 +95,7 @@ class PhysicsSystem
 
     void showOrbits(float gravConst, float dt)
     {
-        const int maxSteps = 10000;
+        const int maxSteps = 20000;
         
         std::vector<Planet> future;
 

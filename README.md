@@ -2,6 +2,9 @@ This project is made for Hackclub and the Horizons Berlin event.
 
 # What is the project?
 The project will aim to show a window which will present the user with an interface of creating some objects with presets where physics will then be applied using Newtonian physics. Other features may be added, however this is the planned course of the project at the current moment.
+
+### The web version of the project has some known issues such as screen stretching, weird orbital lines, etc.
+
 # Requirements
 ### <br>**To compile the project yourself, you will need to install the raylib package.**<br>
 ### On Arch Linux, this can be done by:
@@ -28,4 +31,5 @@ make reset
 - The programme will create a white window which displays a central planet (which may represent the sun or whatever you want because it is a placeholder) and an orbiting planet/moon with a path.
 - The programme does involve movement and a time warp function (beware with the time warp function as it is unstable at high speeds.)
 - I aim to add some features to the programme which mean the user can interact properly with each object without changing any code.
-- I am currently in the process of transferring all calculations to an N-Body format to make future interactivity more fluent.
+- The programme now uses N-Body physics.
+- The programme now has a deployment of the current progress

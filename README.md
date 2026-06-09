@@ -3,7 +3,7 @@ This project is made for Hackclub and the Horizons Berlin event.
 # What is the project?
 The project will aim to show a window which will present the user with an interface of creating some objects with presets where physics will then be applied using Newtonian physics. Other features may be added, however this is the planned course of the project at the current moment.
 
-### The web version of the project has some known issues such as screen stretching, weird orbital lines, etc.
+### Web version can be accessed here: https://rocksterman208.github.io/2D-OrbitalSim/ (please note that calculation issues may occur due to the nature of tab/window switching in browsers.)
 
 # Requirements
 ### <br>**To compile the project yourself, you will need to install the raylib package.**<br>

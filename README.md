@@ -1,4 +1,5 @@
-This project is made for Hackclub and the Horizons Berlin event.
+This project is made for Hackclub and the Horizons Berlin event. <br>
+AI was used in debugging this project.
 
 # What is the project?
 The project will aim to show a window which will present the user with an interface of creating some objects with presets where physics will then be applied using Newtonian physics. Other features may be added, however this is the planned course of the project at the current moment.

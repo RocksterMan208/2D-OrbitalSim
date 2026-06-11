@@ -7,7 +7,7 @@ SRC_DIR := src
 INCLUDE_DIR := include
 BUILD_DIR := build-web
 
-TARGET := player/play.html
+TARGET := docs/play.html
 
 RAYLIB_DIR := /home/aheal/libs/raylib
 RAYLIB_SRC := $(RAYLIB_DIR)/src

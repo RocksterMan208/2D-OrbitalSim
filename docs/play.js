@@ -73,7 +73,7 @@ var ENVIRONMENT_IS_SHELL = !ENVIRONMENT_IS_WEB && !ENVIRONMENT_IS_NODE && !ENVIR
 // refer to Module (if they choose; they can also define Module)
 
 
-var arguments_ = [];
+var programArgs = [];
 var thisProgram = './this.program';
 var quit_ = (status, toThrow) => {
   throw toThrow;
@@ -133,7 +133,7 @@ readAsync = async (filename, binary = true) => {
     thisProgram = process.argv[1].replace(/\\/g, '/');
   }
 
-  arguments_ = process.argv.slice(2);
+  programArgs = process.argv.slice(2);
 
   // MODULARIZE will export the module in the proper place outside, we don't need to export here
   if (typeof module != 'undefined') {
@@ -3163,8 +3163,8 @@ var stringToUTF8Array = (str, heap, outIdx, maxBytesToWrite) => {
         return stream.stream_ops.ioctl(stream, cmd, arg);
       },
   readFile(path, opts = {}) {
-        opts.flags = opts.flags || 0;
-        opts.encoding = opts.encoding || 'binary';
+        opts.flags = opts.flags ?? 0;
+        opts.encoding = opts.encoding ?? 'binary';
         if (opts.encoding !== 'utf8' && opts.encoding !== 'binary') {
           abort(`Invalid encoding type "${opts.encoding}"`);
         }
@@ -3180,7 +3180,7 @@ var stringToUTF8Array = (str, heap, outIdx, maxBytesToWrite) => {
         return buf;
       },
   writeFile(path, data, opts = {}) {
-        opts.flags = opts.flags || 577;
+        opts.flags = opts.flags ?? 577;
         var stream = FS.open(path, opts.flags, opts.mode);
         data = FS_fileDataToTypedArray(data);
         FS.write(stream, data, 0, data.byteLength, undefined, opts.canOwn);
@@ -3517,8 +3517,8 @@ var stringToUTF8Array = (str, heap, outIdx, maxBytesToWrite) => {
   
             // Function to get a range from the remote URL.
             var doXHR = (from, to) => {
-              if (from > to) abort("invalid range (" + from + ", " + to + ") or no bytes requested!");
-              if (to > datalength-1) abort("only " + datalength + " bytes available! programmer error!");
+              if (from > to) abort(`invalid range (${from}, ${to}) or no bytes requested!`);
+              if (to > datalength-1) abort(`only ${datalength} bytes available! programmer error!`);
   
               // TODO: Use mozResponseArrayBuffer, responseStream, etc. if available.
               var xhr = new XMLHttpRequest();
@@ -3536,7 +3536,7 @@ var stringToUTF8Array = (str, heap, outIdx, maxBytesToWrite) => {
               if (xhr.response !== undefined) {
                 return new Uint8Array(/** @type{Array<number>} */(xhr.response || []));
               }
-              return intArrayFromString(xhr.responseText || '', true);
+              return intArrayFromString(xhr.responseText ?? '', true);
             };
             var lazyArray = this;
             lazyArray.setDataGetter((chunkNum) => {
@@ -4103,12 +4103,12 @@ var stringToUTF8Array = (str, heap, outIdx, maxBytesToWrite) => {
         JSEvents.deferredCalls = JSEvents.deferredCalls.filter((call) => call.targetFunction != targetFunction);
       },
   canPerformEventHandlerRequests() {
+        // Browsers that support navigator.userActivation.isActive: https://developer.mozilla.org/en-US/docs/Web/API/UserActivation/isActive
         if (navigator.userActivation) {
           // Verify against transient activation status from UserActivation API
           // whether it is possible to perform a request here without needing to defer. See
           // https://developer.mozilla.org/en-US/docs/Web/Security/User_activation#transient_activation
           // and https://caniuse.com/mdn-api_useractivation
-          // At the time of writing, Firefox does not support this API: https://bugzil.la/1791079
           return navigator.userActivation.isActive;
         }
   
@@ -4189,10 +4189,9 @@ var stringToUTF8Array = (str, heap, outIdx, maxBytesToWrite) => {
         return success ? 0 : -5;
       },
   getNodeNameForTarget(target) {
-        if (!target) return '';
         if (target == window) return '#window';
         if (target == screen) return '#screen';
-        return target?.nodeName || '';
+        return target?.nodeName ?? '';
       },
   fullscreenEnabled() {
         return document.fullscreenEnabled
@@ -4349,7 +4348,7 @@ var stringToUTF8Array = (str, heap, outIdx, maxBytesToWrite) => {
         'WEBGL_polygon_mode'
       ];
       // .getSupportedExtensions() can return null if context is lost, so coerce to empty array.
-      return (ctx.getSupportedExtensions() || []).filter(ext => supportedExtensions.includes(ext));
+      return ctx.getSupportedExtensions()?.filter(ext => supportedExtensions.includes(ext)) ?? [];
     };
   
   
@@ -4579,9 +4578,11 @@ var stringToUTF8Array = (str, heap, outIdx, maxBytesToWrite) => {
       GLctx.bufferData(target, data ? HEAPU8.subarray(data, data+size) : size, usage);
     };
 
-  var _emscripten_glBufferSubData = (target, offset, size, data) => {
-      GLctx.bufferSubData(target, offset, HEAPU8.subarray(data, data+size));
+  var webglBufferSubData = (target, offset, size, data, src = HEAPU8) => {
+      GLctx.bufferSubData(target, offset, src.subarray(data, data + size));
     };
+  
+  var _emscripten_glBufferSubData = (target, offset, size, data) => webglBufferSubData(target, offset, size, data);
 
   var _emscripten_glCheckFramebufferStatus = (x0) => GLctx.checkFramebufferStatus(x0);
 
@@ -4789,6 +4790,7 @@ var stringToUTF8Array = (str, heap, outIdx, maxBytesToWrite) => {
   var _glDrawBuffers = _emscripten_glDrawBuffers;
   var _emscripten_glDrawBuffersWEBGL = _glDrawBuffers;
 
+  
   var _emscripten_glDrawElements = (mode, count, type, indices) => {
   
       GLctx.drawElements(mode, count, type, indices);
@@ -5421,17 +5423,17 @@ var stringToUTF8Array = (str, heap, outIdx, maxBytesToWrite) => {
       return -1;
     };
 
-  var webglGetUniformLocation = (location) => {
-      var p = GLctx.currentProgram;
   
-      if (p) {
-        var webglLoc = p.uniformLocsById[location];
-        // p.uniformLocsById[location] stores either an integer, or a
+  var webglGetProgramUniformLocation = (program, location) => {
+  
+      if (program) {
+        var webglLoc = program.uniformLocsById[location];
+        // program.uniformLocsById[location] stores either an integer, or a
         // WebGLUniformLocation.
         // If an integer, we have not yet bound the location, so do it now. The
         // integer value specifies the array index we should bind to.
         if (typeof webglLoc == 'number') {
-          p.uniformLocsById[location] = webglLoc = GLctx.getUniformLocation(p, p.uniformArrayNamesById[location] + (webglLoc > 0 ? `[${webglLoc}]` : ''));
+          program.uniformLocsById[location] = webglLoc = GLctx.getUniformLocation(program, program.uniformArrayNamesById[location] + (webglLoc > 0 ? `[${webglLoc}]` : ''));
         }
         // Else an already cached WebGLUniformLocation, return it.
         return webglLoc;
@@ -5452,7 +5454,7 @@ var stringToUTF8Array = (str, heap, outIdx, maxBytesToWrite) => {
       }
       program = GL.programs[program];
       webglPrepareUniformLocationsBeforeFirstUse(program);
-      var data = GLctx.getUniform(program, webglGetUniformLocation(location));
+      var data = GLctx.getUniform(program, webglGetProgramUniformLocation(program, location));
       if (typeof data == 'number' || typeof data == 'boolean') {
         switch (type) {
           case 0: HEAP32[((params)>>2)] = data; break;
@@ -5673,7 +5675,7 @@ var stringToUTF8Array = (str, heap, outIdx, maxBytesToWrite) => {
   var toTypedArrayIndex = (pointer, heap) =>
       pointer >>> (31 - Math.clz32(heap.BYTES_PER_ELEMENT));
   
-  var emscriptenWebGLGetTexPixelData = (type, format, width, height, pixels, internalFormat) => {
+  var emscriptenWebGLGetTexPixelData = (type, format, width, height, pixels) => {
       var heap = heapObjectForWebGLType(type);
       var sizePerPixel = colorChannelsInGlTextureFormat(format) * heap.BYTES_PER_ELEMENT;
       var bytes = computeUnpackAlignedImageSize(width, height, sizePerPixel);
@@ -5681,7 +5683,7 @@ var stringToUTF8Array = (str, heap, outIdx, maxBytesToWrite) => {
     };
   
   var _emscripten_glReadPixels = (x, y, width, height, format, type, pixels) => {
-      var pixelData = emscriptenWebGLGetTexPixelData(type, format, width, height, pixels, format);
+      var pixelData = emscriptenWebGLGetTexPixelData(type, format, width, height, pixels);
       if (!pixelData) {
         GL.recordError(0x500/*GL_INVALID_ENUM*/);
         return;
@@ -5725,7 +5727,7 @@ var stringToUTF8Array = (str, heap, outIdx, maxBytesToWrite) => {
 
   
   var _emscripten_glTexImage2D = (target, level, internalFormat, width, height, border, format, type, pixels) => {
-      var pixelData = pixels ? emscriptenWebGLGetTexPixelData(type, format, width, height, pixels, internalFormat) : null;
+      var pixelData = pixels ? emscriptenWebGLGetTexPixelData(type, format, width, height, pixels) : null;
       GLctx.texImage2D(target, level, internalFormat, width, height, border, format, type, pixelData);
     };
 
@@ -5745,10 +5747,15 @@ var stringToUTF8Array = (str, heap, outIdx, maxBytesToWrite) => {
 
   
   var _emscripten_glTexSubImage2D = (target, level, xoffset, yoffset, width, height, format, type, pixels) => {
-      var pixelData = pixels ? emscriptenWebGLGetTexPixelData(type, format, width, height, pixels, 0) : null;
+      var pixelData = pixels ? emscriptenWebGLGetTexPixelData(type, format, width, height, pixels) : null;
       GLctx.texSubImage2D(target, level, xoffset, yoffset, width, height, format, type, pixelData);
     };
 
+  
+  var webglGetUniformLocation = (location) => {
+  
+      return webglGetProgramUniformLocation(GLctx.currentProgram, location);
+    };
   
   var _emscripten_glUniform1f = (location, v0) => {
       GLctx.uniform1f(webglGetUniformLocation(location), v0);
@@ -6094,7 +6101,7 @@ var stringToUTF8Array = (str, heap, outIdx, maxBytesToWrite) => {
       2147483648;
   
   var alignMemory = (size, alignment) => {
-      assert(alignment, "alignment argument is required");
+      assert(alignment, 'alignment argument is required');
       return Math.ceil(size / alignment) * alignment;
     };
   
@@ -6186,7 +6193,7 @@ var stringToUTF8Array = (str, heap, outIdx, maxBytesToWrite) => {
   
       var focusEventHandlerFunc = (e) => {
         var nodeName = JSEvents.getNodeNameForTarget(e.target);
-        var id = e.target.id ? e.target.id : '';
+        var id = e.target.id ?? '';
   
         var focusEvent = JSEvents.focusEvent;
         stringToUTF8(nodeName, focusEvent + 0, 128);
@@ -6295,11 +6302,11 @@ var stringToUTF8Array = (str, heap, outIdx, maxBytesToWrite) => {
       // If transitioning to windowed mode, report info about the element that just was fullscreen.
       var reportedElement = isFullscreen ? fullscreenElement : JSEvents.previousFullscreenElement;
       var nodeName = JSEvents.getNodeNameForTarget(reportedElement);
-      var id = reportedElement?.id || '';
+      var id = reportedElement?.id ?? '';
       stringToUTF8(nodeName, eventStruct + 2, 128);
       stringToUTF8(id, eventStruct + 130, 128);
-      HEAP32[(((eventStruct)+(260))>>2)] = reportedElement ? reportedElement.clientWidth : 0;
-      HEAP32[(((eventStruct)+(264))>>2)] = reportedElement ? reportedElement.clientHeight : 0;
+      HEAP32[(((eventStruct)+(260))>>2)] = reportedElement?.clientWidth ?? 0;
+      HEAP32[(((eventStruct)+(264))>>2)] = reportedElement?.clientHeight ?? 0;
       HEAP32[(((eventStruct)+(268))>>2)] = screen.width;
       HEAP32[(((eventStruct)+(272))>>2)] = screen.height;
       if (isFullscreen) {
@@ -6477,7 +6484,10 @@ var stringToUTF8Array = (str, heap, outIdx, maxBytesToWrite) => {
       } else {
         assert(mode == 2);
         if (!MainLoop.setImmediate) {
-          if (globalThis.setImmediate) {
+          if (globalThis.scheduler) {
+            // Some modern browsers implement scheduler.postTask, but not all.
+            MainLoop.setImmediate = scheduler.postTask.bind(scheduler);
+          } else if (globalThis.setImmediate) {
             MainLoop.setImmediate = setImmediate;
           } else {
             // Emulate setImmediate. (note: not a complete polyfill, we don't emulate clearImmediate() to keep code size to minimum, since not needed)
@@ -6485,9 +6495,7 @@ var stringToUTF8Array = (str, heap, outIdx, maxBytesToWrite) => {
             var emscriptenMainLoopMessageId = 'setimmediate';
             /** @param {Event} event */
             var MainLoop_setImmediate_messageHandler = (event) => {
-              // When called in current thread or Worker, the main loop ID is structured slightly different to accommodate for --proxy-to-worker runtime listening to Worker events,
-              // so check for both cases.
-              if (event.data === emscriptenMainLoopMessageId || event.data.target === emscriptenMainLoopMessageId) {
+              if (event.data === emscriptenMainLoopMessageId) {
                 event.stopPropagation();
                 setImmediates.shift()();
               }
@@ -6496,10 +6504,12 @@ var stringToUTF8Array = (str, heap, outIdx, maxBytesToWrite) => {
             MainLoop.setImmediate = /** @type{function(function(): ?, ...?): number} */((func) => {
               setImmediates.push(func);
               if (ENVIRONMENT_IS_WORKER) {
-                Module['setImmediates'] ??= [];
-                Module['setImmediates'].push(func);
-                postMessage({target: emscriptenMainLoopMessageId}); // In --proxy-to-worker, route the message via proxyClient.js
-              } else postMessage(emscriptenMainLoopMessageId, "*"); // On the main thread, can just send the message to itself.
+                // The postMessge API in a Worker, sends message to the main
+                // thread and does not support the `targetOrigin` (*) argument.
+                postMessage(emscriptenMainLoopMessageId);
+              } else {
+                postMessage(emscriptenMainLoopMessageId, '*');
+              }
             });
           }
         }
@@ -6703,7 +6713,7 @@ var stringToUTF8Array = (str, heap, outIdx, maxBytesToWrite) => {
       /** @suppress{checkTypes} */
       HEAP8[eventStruct] = isPointerlocked;
       var nodeName = JSEvents.getNodeNameForTarget(pointerLockElement);
-      var id = pointerLockElement?.id || '';
+      var id = pointerLockElement?.id ?? '';
       stringToUTF8(nodeName, eventStruct + 1, 128);
       stringToUTF8(id, eventStruct + 129, 128);
     };
@@ -9246,7 +9256,7 @@ if (Module['wasmBinary']) wasmBinary = Module['wasmBinary'];
 
   checkIncomingModuleAPI();
 
-  if (Module['arguments']) arguments_ = Module['arguments'];
+  if (Module['arguments']) programArgs = Module['arguments'];
   if (Module['thisProgram']) thisProgram = Module['thisProgram'];
 
   // Assertions on removed incoming Module JS APIs.
@@ -9363,6 +9373,7 @@ if (Module['wasmBinary']) wasmBinary = Module['wasmBinary'];
   'registerPreMainLoop',
   'getPromise',
   'makePromise',
+  'addPromise',
   'idsToPromises',
   'makePromiseCallback',
   'findMatchingCatch',
@@ -9660,6 +9671,7 @@ missingLibrarySymbols.forEach(missingLibrarySymbol)
   'colorChannelsInGlTextureFormat',
   'emscriptenWebGLGetTexPixelData',
   'emscriptenWebGLGetUniform',
+  'webglGetProgramUniformLocation',
   'webglGetUniformLocation',
   'webglPrepareUniformLocationsBeforeFirstUse',
   'webglGetLeftBracePos',
@@ -9699,49 +9711,49 @@ function checkIncomingModuleAPI() {
   ignoredModuleProp('onSbrkGrow');
 }
 var ASM_CONSTS = {
-  89958: () => { if (document.fullscreenElement) return 1; },  
- 90004: () => { return Module.canvas.width; },  
- 90036: () => { return parseInt(Module.canvas.style.width); },  
- 90084: () => { document.exitFullscreen(); },  
- 90111: () => { setTimeout(function(){ Module.requestFullscreen(false, false); }, 100); },  
- 90183: () => { if (document.fullscreenElement) return 1; },  
- 90229: () => { return Module.canvas.width; },  
- 90261: () => { return screen.width; },  
- 90286: () => { document.exitFullscreen(); },  
- 90313: ($0) => { const canvasId = UTF8ToString($0); setTimeout(function() { Module.requestFullscreen(false, true); setTimeout(function() { document.querySelector(canvasId).style.width="unset"; }, 100); }, 100); },  
- 90507: () => { return window.innerWidth; },  
- 90533: () => { return window.innerHeight; },  
- 90560: () => { if (document.fullscreenElement) return 1; },  
- 90606: () => { return Module.canvas.width; },  
- 90638: () => { return parseInt(Module.canvas.style.width); },  
- 90686: () => { if (document.fullscreenElement) return 1; },  
- 90732: () => { return Module.canvas.width; },  
- 90764: () => { return screen.width; },  
- 90789: () => { return window.innerWidth; },  
- 90815: () => { return window.innerHeight; },  
- 90842: () => { if (document.fullscreenElement) return 1; },  
- 90888: () => { return Module.canvas.width; },  
- 90920: () => { return screen.width; },  
- 90945: () => { document.exitFullscreen(); },  
- 90972: () => { if (document.fullscreenElement) return 1; },  
- 91018: () => { return Module.canvas.width; },  
- 91050: () => { return parseInt(Module.canvas.style.width); },  
- 91098: () => { document.exitFullscreen(); },  
- 91125: ($0) => { Module.canvas.style.opacity = $0; },  
- 91163: () => { return screen.width; },  
- 91188: () => { return screen.height; },  
- 91214: () => { return window.screenX; },  
- 91241: () => { return window.screenY; },  
- 91268: () => { return window.devicePixelRatio; },  
- 91304: ($0) => { navigator.clipboard.writeText(UTF8ToString($0)); },  
- 91357: ($0) => { Module.canvas.style.cursor = UTF8ToString($0); },  
- 91408: () => { Module.canvas.style.cursor = 'none'; },  
- 91445: ($0, $1, $2, $3) => { try { navigator.getGamepads()[$0].vibrationActuator.playEffect('dual-rumble', { startDelay: 0, duration: $3, weakMagnitude: $1, strongMagnitude: $2 }); } catch (e) { try { navigator.getGamepads()[$0].hapticActuators[0].pulse($2, $3); } catch (e) { } } },  
- 91701: ($0) => { Module.canvas.style.cursor = UTF8ToString($0); },  
- 91752: () => { if (document.pointerLockElement) return 1; },  
- 91799: () => { if (document.fullscreenElement) return 1; },  
- 91845: () => { return window.innerWidth; },  
- 91871: () => { return window.innerHeight; }
+  90006: () => { if (document.fullscreenElement) return 1; },  
+ 90052: () => { return Module.canvas.width; },  
+ 90084: () => { return parseInt(Module.canvas.style.width); },  
+ 90132: () => { document.exitFullscreen(); },  
+ 90159: () => { setTimeout(function(){ Module.requestFullscreen(false, false); }, 100); },  
+ 90231: () => { if (document.fullscreenElement) return 1; },  
+ 90277: () => { return Module.canvas.width; },  
+ 90309: () => { return screen.width; },  
+ 90334: () => { document.exitFullscreen(); },  
+ 90361: ($0) => { const canvasId = UTF8ToString($0); setTimeout(function() { Module.requestFullscreen(false, true); setTimeout(function() { document.querySelector(canvasId).style.width="unset"; }, 100); }, 100); },  
+ 90555: () => { return window.innerWidth; },  
+ 90581: () => { return window.innerHeight; },  
+ 90608: () => { if (document.fullscreenElement) return 1; },  
+ 90654: () => { return Module.canvas.width; },  
+ 90686: () => { return parseInt(Module.canvas.style.width); },  
+ 90734: () => { if (document.fullscreenElement) return 1; },  
+ 90780: () => { return Module.canvas.width; },  
+ 90812: () => { return screen.width; },  
+ 90837: () => { return window.innerWidth; },  
+ 90863: () => { return window.innerHeight; },  
+ 90890: () => { if (document.fullscreenElement) return 1; },  
+ 90936: () => { return Module.canvas.width; },  
+ 90968: () => { return screen.width; },  
+ 90993: () => { document.exitFullscreen(); },  
+ 91020: () => { if (document.fullscreenElement) return 1; },  
+ 91066: () => { return Module.canvas.width; },  
+ 91098: () => { return parseInt(Module.canvas.style.width); },  
+ 91146: () => { document.exitFullscreen(); },  
+ 91173: ($0) => { Module.canvas.style.opacity = $0; },  
+ 91211: () => { return screen.width; },  
+ 91236: () => { return screen.height; },  
+ 91262: () => { return window.screenX; },  
+ 91289: () => { return window.screenY; },  
+ 91316: () => { return window.devicePixelRatio; },  
+ 91352: ($0) => { navigator.clipboard.writeText(UTF8ToString($0)); },  
+ 91405: ($0) => { Module.canvas.style.cursor = UTF8ToString($0); },  
+ 91456: () => { Module.canvas.style.cursor = 'none'; },  
+ 91493: ($0, $1, $2, $3) => { try { navigator.getGamepads()[$0].vibrationActuator.playEffect('dual-rumble', { startDelay: 0, duration: $3, weakMagnitude: $1, strongMagnitude: $2 }); } catch (e) { try { navigator.getGamepads()[$0].hapticActuators[0].pulse($2, $3); } catch (e) { } } },  
+ 91749: ($0) => { Module.canvas.style.cursor = UTF8ToString($0); },  
+ 91800: () => { if (document.pointerLockElement) return 1; },  
+ 91847: () => { if (document.fullscreenElement) return 1; },  
+ 91893: () => { return window.innerWidth; },  
+ 91919: () => { return window.innerHeight; }
 };
 function SetCanvasIdJs(out,outSize) { var canvasId = "#" + Module.canvas.id; stringToUTF8(canvasId, out, outSize); }
 function __asyncjs__RequestClipboardData() { return Asyncify.handleAsync(async () => { if (navigator.clipboard && window.isSecureContext) { let items = await navigator.clipboard.read(); for (const item of items) { if (item.types.includes("text/plain")) { const blob = await item.getType("text/plain"); const text = await blob.text(); window._lastClipboardString = text; } else if (item.types.find(t => t.startsWith("image/"))) { const blob = await item.getType(item.types.find(t => t.startsWith("image/"))); const bitmap = await createImageBitmap(blob); const canvas = document.createElement('canvas'); canvas.width = bitmap.width; canvas.height = bitmap.height; const ctx = canvas.getContext('2d'); ctx.drawImage(bitmap, 0, 0); const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height).data; window._lastImgWidth = canvas.width; window._lastImgHeight = canvas.height; window._lastImgData = imgData; } } } else console.warn("Clipboard read() requires HTTPS/Localhost"); }); }
@@ -9787,7 +9799,7 @@ var dynCall_viffff = makeInvalidEarlyAccess('dynCall_viffff');
 var dynCall_viiiiii = makeInvalidEarlyAccess('dynCall_viiiiii');
 var dynCall_vfff = makeInvalidEarlyAccess('dynCall_vfff');
 var dynCall_jiji = makeInvalidEarlyAccess('dynCall_jiji');
-var dynCall_iidiiii = makeInvalidEarlyAccess('dynCall_iidiiii');
+var dynCall_iidiiiii = makeInvalidEarlyAccess('dynCall_iidiiiii');
 var _asyncify_start_unwind = makeInvalidEarlyAccess('_asyncify_start_unwind');
 var _asyncify_stop_unwind = makeInvalidEarlyAccess('_asyncify_stop_unwind');
 var _asyncify_start_rewind = makeInvalidEarlyAccess('_asyncify_start_rewind');
@@ -9835,7 +9847,7 @@ function assignWasmExports(wasmExports) {
   assert(typeof wasmExports['dynCall_viiiiii'] != 'undefined', 'missing Wasm export: dynCall_viiiiii');
   assert(typeof wasmExports['dynCall_vfff'] != 'undefined', 'missing Wasm export: dynCall_vfff');
   assert(typeof wasmExports['dynCall_jiji'] != 'undefined', 'missing Wasm export: dynCall_jiji');
-  assert(typeof wasmExports['dynCall_iidiiii'] != 'undefined', 'missing Wasm export: dynCall_iidiiii');
+  assert(typeof wasmExports['dynCall_iidiiiii'] != 'undefined', 'missing Wasm export: dynCall_iidiiiii');
   assert(typeof wasmExports['asyncify_start_unwind'] != 'undefined', 'missing Wasm export: asyncify_start_unwind');
   assert(typeof wasmExports['asyncify_stop_unwind'] != 'undefined', 'missing Wasm export: asyncify_stop_unwind');
   assert(typeof wasmExports['asyncify_start_rewind'] != 'undefined', 'missing Wasm export: asyncify_start_rewind');
@@ -9880,7 +9892,7 @@ function assignWasmExports(wasmExports) {
   dynCall_viiiiii = dynCalls['viiiiii'] = createExportWrapper('dynCall_viiiiii', 7);
   dynCall_vfff = dynCalls['vfff'] = createExportWrapper('dynCall_vfff', 4);
   dynCall_jiji = dynCalls['jiji'] = createExportWrapper('dynCall_jiji', 4);
-  dynCall_iidiiii = dynCalls['iidiiii'] = createExportWrapper('dynCall_iidiiii', 7);
+  dynCall_iidiiiii = dynCalls['iidiiiii'] = createExportWrapper('dynCall_iidiiiii', 8);
   _asyncify_start_unwind = createExportWrapper('asyncify_start_unwind', 1);
   _asyncify_stop_unwind = createExportWrapper('asyncify_stop_unwind', 0);
   _asyncify_start_rewind = createExportWrapper('asyncify_start_rewind', 1);
